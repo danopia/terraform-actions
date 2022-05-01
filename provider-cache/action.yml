@@ -1,0 +1,20 @@
+name: Terraform Provider Cache
+description: >-
+  Stores Terraform provider binaries in the Github Actions cache
+
+runs:
+  using: composite
+  steps:
+
+  - name: Configure provider cache
+    run: |
+      TF_PLUGIN_CACHE_DIR="${{ runner.temp }}/terraform-provider-cache"
+      mkdir -p "$TF_PLUGIN_CACHE_DIR"
+      echo "TF_PLUGIN_CACHE_DIR=$TF_PLUGIN_CACHE_DIR" >> $GITHUB_ENV
+    shell: bash
+
+  - uses: actions/cache@v3
+    with:
+      path: ${{ runner.temp }}/terraform-provider-cache
+      key: tf-providers-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/.terraform.lock.hcl') }}
+      restore-keys: tf-providers-${{ runner.os }}-${{ runner.arch }}-
