@@ -1,0 +1,49 @@
+name: Continuous-Terraform API
+description: >-
+  Sends an HTTP request to a Continuous Terraform coordination server.
+
+inputs:
+  api-path:
+    required: true
+  terraform-ci-url:
+    required: true
+  github-job-name:
+    required: true
+  terraform-directory:
+    required: true
+  upload-file:
+    required: false
+
+runs:
+  using: composite
+  steps:
+
+  - uses: actions/github-script@v6
+    env:
+      API_PATH: ${{ inputs.api-path }}
+      TERRAFORM_CI_URL: ${{ inputs.terraform-ci-url }}
+      GITHUB_JOB_NAME: ${{ inputs.github-job-name }}
+      TERRAFORM_DIRECTORY: ${{ inputs.terraform-directory }}
+      UPLOAD_FILE: ${{ inputs.upload-file }}
+    with:
+      script: |
+        const {
+          default: request,
+        } = await import('${{ github.action_path }}/request.mjs');
+
+        const idToken = await core.getIDToken(process.env.TERRAFORM_CI_URL);
+
+        const response = await request({
+          baseUrl: process.env.TERRAFORM_CI_URL+'/',
+          url: process.env.API_PATH,
+          method: 'POST',
+          uploadFile: process.env.UPLOAD_FILE,
+          headers: {
+            "Authorization": `Bearer ${idToken}`,
+            "X-Terraform-Directory": process.env.TERRAFORM_DIRECTORY,
+            "X-GitHub-Job-Name": process.env.GITHUB_JOB_NAME,
+          },
+        });
+        console.log(response.text);
+        if (response.status >= 300) throw new Error(
+          `HTTP ${response.status} from ${process.env.API_PATH}`);
